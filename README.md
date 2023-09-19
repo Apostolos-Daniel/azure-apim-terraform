@@ -102,6 +102,8 @@ mkdir modules/azure_apim
 touch modules/azure_apim/main.tf
 ```
 
+### Create a resource group
+
 Then create a resource group within the module:
 
 ```
@@ -145,4 +147,49 @@ Or via the Azure CLI, list all resource groups by name only:
 
 ```
 az group list --query '[].name' -o tsv
+```
+
+### Create an APIM instance
+
+Create an APIM instance within the module. Note that you have to use a unique name for the APIM instance and this applies globally across Azure.
+
+```
+resource "azurerm_api_management" "example" {
+  name                = "example-apim-toli-io"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  publisher_name      = "My Company"
+  publisher_email     = "
+}
+```
+
+Check if the apim instance exists:
+
+```
+az apim list --resource-group apim-rg --query "[].{name:name}" -o table
+```
+
+You should get something like this:
+
+```
+Name
+--------------------
+example-apim-toli-io
+```
+
+This creates an apim instance without any APIs. To create an API, you need to create an API product.
+
+Add an API product to the APIM instance:
+
+```
+resource "azurerm_api_management_product" "example" {
+  product_id = "example-product"
+  product_name = "example-product"
+  resource_group_name = azurerm_resource_group.example.name
+  api_management_name = azurerm_api_management.example.name
+  display_name = "Example Product"
+  description = "Example Product"
+  terms = "Example Product"
+  subscription_required = false
+}
 ```
