@@ -269,7 +269,7 @@ az apim api revision list --api-id example-api --resource-group apim-rg --servic
 Not sure it's possible to make it live.
 
 
-**Note**: revisions is a different concept to "versions". You can have multiple revisions of an API, but only one version. You can't have multiple versions of an API. See more [here](az apim api revision publish --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --api-revision 2).
+**Note**: revisions is a different concept to "versions". You can have multiple revisions of an API, but only one version. You can't have multiple versions of an API.
 
 You may not be able to do this programmatically: https://github.com/Azure/azure-cli/issues/14695
 
@@ -314,3 +314,5 @@ ApiId                    ApiRevision    CreatedDateTime                   Descri
 ```
 
 Not sure it's possible to simply add a new revision to existing revisions.
+
+See [GitHub issue](https://github.com/hashicorp/terraform-provider-azurerm/issues/12720)
