@@ -247,3 +247,70 @@ XML
 ```
 
 You can't show this policy via the Azure CLI, but you can look it up on Azure Portal. The policy should now be updated.
+
+## Revisions
+
+APIM uses the concept of "revisions" to manage the lifecycle of APIs. You can create a new revision of an API and then publish it to the gateway. This allows you to make changes to the API without affecting the live version.
+
+### Using the Azure CLI
+
+To create a new revision of an API using az cli, run:
+
+```
+az apim api revision create --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --api-revision 2 --api-revision-description "New revision"
+```
+
+This doesn't actually make it live, this adds a revision that's not current. You can check it's not current by running:
+
+```
+az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
+```
+
+Not sure it's possible to make it live.
+
+
+**Note**: revisions is a different concept to "versions". You can have multiple revisions of an API, but only one version. You can't have multiple versions of an API. See more [here](az apim api revision publish --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --api-revision 2).
+
+You may not be able to do this programmatically: https://github.com/Azure/azure-cli/issues/14695
+
+### Using the azurerm terraform provider
+
+You can achieve the same by using the azurerm terraform provider. 
+
+
+You can check which revision is current by running:
+
+```
+az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
+```
+
+
+First, create a new revision of the API by setting the `revision` to 2 (assumming the previous version is 1):
+
+```
+resource "azurerm_api_management_api" "example" {
+  name                = "example-api"
+  resource_group_name = azurerm_resource_group.example.name
+  api_management_name = azurerm_api_management.example.name
+  revision            = "2"
+  display_name        = "Example API" # <-- This attribute is required
+  protocols           = ["https"]     # <-- This attribute is required
+
+}
+```
+
+Run the same command again:
+
+```
+az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
+```
+
+This deletes all revisions and crates a single revision (revision 1):
+
+```
+ApiId                    ApiRevision    CreatedDateTime                   Description    IsCurrent    IsOnline    PrivateUrl    UpdatedDateTime
+-----------------------  -------------  --------------------------------  -------------  -----------  ----------  ------------  --------------------------------
+/apis/example-api;rev=2  2              2023-09-20T09:45:32.957000+00:00                 True         True        /             2023-09-20T09:45:32.970000+00:00
+```
+
+Not sure it's possible to simply add a new revision to existing revisions.

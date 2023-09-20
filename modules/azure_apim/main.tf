@@ -17,7 +17,7 @@ resource "azurerm_api_management_api" "example" {
   name                = "example-api"
   resource_group_name = azurerm_resource_group.example.name
   api_management_name = azurerm_api_management.example.name
-  revision            = "1"
+  revision            = "5"
   display_name        = "Example API" # <-- This attribute is required
   protocols           = ["https"]     # <-- This attribute is required
 
