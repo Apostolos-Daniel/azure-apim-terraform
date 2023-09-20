@@ -179,17 +179,71 @@ example-apim-toli-io
 
 This creates an apim instance without any APIs. To create an API, you need to create an API product.
 
-Add an API product to the APIM instance:
+*Note*: this may take a few minutes to complete (it took me 28 mins).
+
+To check if the apim instance has been created, run:
 
 ```
-resource "azurerm_api_management_product" "example" {
-  product_id = "example-product"
-  product_name = "example-product"
+az apim show --name example-apim-toli-io --resource-group apim-rg --output table
+```
+
+### Add a policy to an API endpoint
+
+Add an API endpoint to the APIM instance:
+
+```
+resource "azurerm_api_management_api" "example" {
+  name                = "example-api"
   resource_group_name = azurerm_resource_group.example.name
   api_management_name = azurerm_api_management.example.name
-  display_name = "Example Product"
-  description = "Example Product"
-  terms = "Example Product"
-  subscription_required = false
+  revision            = "1"
 }
 ```
+
+To view the api, run:
+
+```
+az apim api show --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
+```
+
+Then add an API operation to the API:
+
+```
+resource "azurerm_api_management_api_operation" "example" {
+  operation_id        = "acctest-operation"
+  api_name            = azurerm_api_management_api.example.name
+  api_management_name = azurerm_api_management.example.name
+  resource_group_name = azurerm_resource_group.example.name
+  display_name        = "DELETE Resource"
+  method              = "DELETE"
+  url_template        = "/resource"
+}
+```
+
+To view the api operation, run:
+
+```
+az apim api operation show --api-id example-api --operation-id acctest-operation  --resource-group apim-rg --service-name example-apim-toli-io --output table
+```
+
+Finally, add a policy to the API operation:
+
+```
+resource "azurerm_api_management_api_operation_policy" "example" {
+  api_name            = azurerm_api_management_api_operation.example.api_name
+  api_management_name = azurerm_api_management_api_operation.example.api_management_name
+  resource_group_name = azurerm_api_management_api_operation.example.resource_group_name
+  operation_id        = azurerm_api_management_api_operation.example.operation_id
+
+  xml_content = <<XML
+<policies>
+  <inbound>
+    <find-and-replace from="xyz" to="abc" />
+  </inbound>
+</policies>
+XML
+
+}
+```
+
+You can't show this policy via the Azure CLI, but you can look it up on Azure Portal. The policy should now be updated.
