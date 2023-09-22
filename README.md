@@ -177,7 +177,11 @@ Name
 example-apim-toli-io
 ```
 
-This creates an apim instance without any APIs. To create an API, you need to create an API product.
+This creates an apim instance with a single API. To list the APIs, run:
+
+```
+az apim api list --resource-group apim-rg --service-name example-apim-toli-io --query "[].{name:name}" -o table
+```
 
 *Note*: this may take a few minutes to complete (it took me 28 mins).
 
@@ -187,7 +191,7 @@ To check if the apim instance has been created, run:
 az apim show --name example-apim-toli-io --resource-group apim-rg --output table
 ```
 
-### Add a policy to an API endpoint
+### Add an API endpoint
 
 Add an API endpoint to the APIM instance:
 
@@ -206,9 +210,21 @@ To view the api, run:
 az apim api show --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
 ```
 
+This will return something along the lines of:
+
+
+ApiRevision  |  ApiRevisionDescription  |  ApiVersion    ApiVersionDescription  |  Description |   DisplayName   | IsCurrent    Name      |   Path  |  ResourceGroup  |  ServiceUrl   | SubscriptionRequired
+------------- |  ------------------------ | ------------  ----------------------- | ------------- | ------------- | -----------  |----------- | ------ | --------------- | ------------  |----------------------
+5        |                                                                           |           Example API   | True       |  example-api    |      apim-rg          |              True |
+
+
+You will notice that this is the first time that the concept of `revision` appears. See more about this further down.
+
+### Add an API operation
+
 Then add an API operation to the API:
 
-```
+```t
 resource "azurerm_api_management_api_operation" "example" {
   operation_id        = "acctest-operation"
   api_name            = azurerm_api_management_api.example.name
@@ -222,13 +238,23 @@ resource "azurerm_api_management_api_operation" "example" {
 
 To view the api operation, run:
 
-```
+```bash
 az apim api operation show --api-id example-api --operation-id acctest-operation  --resource-group apim-rg --service-name example-apim-toli-io --output table
 ```
 
-Finally, add a policy to the API operation:
+### Add an API operation policy
 
-```
+Policies in APIM are written in XML. You can find the documentation [here](https://docs.microsoft.com/en-us/azure/api-management/api-management-policies). And you can learn more about them [here](https://docs.microsoft.com/en-us/azure/api-management/api-management-howto-policies). You can add policies to [a number of scopes](https://docs.microsoft.com/en-us/azure/api-management/api-management-policies):
+
+- Global
+- Workspace
+- Product
+- API
+- Operation
+
+As an example, add a policy to the API operation:
+
+```t
 resource "azurerm_api_management_api_operation_policy" "example" {
   api_name            = azurerm_api_management_api_operation.example.api_name
   api_management_name = azurerm_api_management_api_operation.example.api_management_name
@@ -242,7 +268,6 @@ resource "azurerm_api_management_api_operation_policy" "example" {
   </inbound>
 </policies>
 XML
-
 }
 ```
 
@@ -254,40 +279,69 @@ APIM uses the concept of "revisions" to manage the lifecycle of APIs. You can cr
 
 ### Using the Azure CLI
 
-To create a new revision of an API using az cli, run:
+To create a new revision of an API using `az cli`, run:
 
-```
+```bash
 az apim api revision create --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --api-revision 2 --api-revision-description "New revision"
 ```
 
 This doesn't actually make it live, this adds a revision that's not current. You can check it's not current by running:
 
-```
+```bash
 az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
 ```
-
-Not sure it's possible to make it live.
-
 
 **Note**: revisions is a different concept to "versions". You can have multiple revisions of an API, but only one version. You can't have multiple versions of an API.
 
-You may not be able to do this programmatically: https://github.com/Azure/azure-cli/issues/14695
+#### Updating the policy of a revision
 
-### Using the azurerm terraform provider
+To update a policy for a revision, you can't use `az cli`, or `terraform azurerm provider`. You will either have to use the Azure Portal or the Azure API Management REST API. Alternatively, you could [use Powershell](https://learn.microsoft.com/en-us/powershell/module/az.apimanagement/set-azapimanagementpolicy?view=azps-10.3.0).
 
-You can achieve the same by using the azurerm terraform provider. 
+For Powershell, run:
 
+```powershell
+$apimContext = New-AzApiManagementContext -ResourceGroupName "apim-rg" -ServiceName "example-apim-toli-io"
+$api = Get-AzApiManagementApi -Context $apimContext -ApiId "example-api"
+echo $api.ApiRevision
 
-You can check which revision is current by running:
-
+Set-AzApiManagementPolicy -Context $apimContext -ApiId "example-api" -PolicyFilePath "policy.xml" -ApiRevision $api.ApiRevision
 ```
+
+Check the policy is what you expect:
+
+```powershell
+Get-AzApiManagementPolicy -Context $apimContext -ApiId "example-api" -SaveAs "remotepolicy.xml" -ApiRevision $api.ApiRevision      
+```
+
+#### Releasing a revision
+
+To release a revision, run:
+
+```bash
+az apim api release create --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --api-revision 6 --notes 'Testing revisions. Added new "test" operation.'
+```
+
+Then run the following to check the correct revision is current:
+
+```bash
 az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
 ```
 
+### Using the azurerm terraform provider
+
+You can't actually achieve the same by using the azurerm terraform provider.
+
+Let's have a look.
+
+You can check which revision is current by running:
+
+```bash
+az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
+```
 
 First, create a new revision of the API by setting the `revision` to 2 (assumming the previous version is 1):
 
-```
+```t
 resource "azurerm_api_management_api" "example" {
   name                = "example-api"
   resource_group_name = azurerm_resource_group.example.name
@@ -295,17 +349,16 @@ resource "azurerm_api_management_api" "example" {
   revision            = "2"
   display_name        = "Example API" # <-- This attribute is required
   protocols           = ["https"]     # <-- This attribute is required
-
 }
 ```
 
 Run the same command again:
 
-```
+```bash
 az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
 ```
 
-This deletes all revisions and crates a single revision (revision 1):
+This deletes all revisions and creates a single revision (revision 2):
 
 ```
 ApiId                    ApiRevision    CreatedDateTime                   Description    IsCurrent    IsOnline    PrivateUrl    UpdatedDateTime
@@ -313,6 +366,6 @@ ApiId                    ApiRevision    CreatedDateTime                   Descri
 /apis/example-api;rev=2  2              2023-09-20T09:45:32.957000+00:00                 True         True        /             2023-09-20T09:45:32.970000+00:00
 ```
 
-Not sure it's possible to simply add a new revision to existing revisions.
+It's not currently possible to simply add a new revision to existing revisions.
 
-See [GitHub issue](https://github.com/hashicorp/terraform-provider-azurerm/issues/12720)
+See [GitHub issue](https://github.com/hashicorp/terraform-provider-azurerm/issues/12720) or the [feature request](https://github.com/hashicorp/terraform-provider-azurerm/issues/22544)
