@@ -370,3 +370,41 @@ ApiId                    ApiRevision    CreatedDateTime                   Descri
 It's not currently possible to simply add a new revision to existing revisions.
 
 See [GitHub issue](https://github.com/hashicorp/terraform-provider-azurerm/issues/12720) or the [feature request](https://github.com/hashicorp/terraform-provider-azurerm/issues/22544)
+
+
+## Testing powershell scripts
+
+You can test powershell scripts using [Pester](https://pester.dev/).
+
+To install Pester, run:
+
+```powershell
+Install-Module -Name Pester -Force 
+Import-Module Pester -PassThru
+```
+
+To run the tests, run:
+
+```powershell
+Invoke-Pester
+```
+
+Create a file called `test.ps1`:
+
+```bash
+touch test.ps1
+```
+
+```powershell
+Describe "My Test" {
+    It "Should be true" {
+        $true | Should -Be $true
+    }
+}
+```
+
+Then run:
+
+```powershell
+Invoke-Pester
+```
