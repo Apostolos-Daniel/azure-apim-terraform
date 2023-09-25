@@ -187,7 +187,7 @@ az apim api list --resource-group apim-rg --service-name example-apim-toli-io --
 
 To check if the apim instance has been created, run:
 
-```
+```bash
 az apim show --name example-apim-toli-io --resource-group apim-rg --output table
 ```
 
@@ -195,7 +195,7 @@ az apim show --name example-apim-toli-io --resource-group apim-rg --output table
 
 Add an API endpoint to the APIM instance:
 
-```
+```t
 resource "azurerm_api_management_api" "example" {
   name                = "example-api"
   resource_group_name = azurerm_resource_group.example.name
@@ -206,7 +206,7 @@ resource "azurerm_api_management_api" "example" {
 
 To view the api, run:
 
-```
+```bash
 az apim api show --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
 ```
 
@@ -288,8 +288,9 @@ az apim api revision create --api-id example-api --resource-group apim-rg --serv
 This doesn't actually make it live, this adds a revision that's not current. You can check it's not current by running:
 
 ```bash
-az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output table
+az apim api revision list --api-id example-api --resource-group apim-rg --service-name example-apim-toli-io --output json | jq '.[] | .apiRevision' | sort -V | tail -n 1
 ```
+
 
 **Note**: revisions is a different concept to "versions". You can have multiple revisions of an API, but only one version. You can't have multiple versions of an API.
 
